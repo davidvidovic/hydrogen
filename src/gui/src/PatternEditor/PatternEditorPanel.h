@@ -224,6 +224,8 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 
 	void patternSizeChangedAction( int nLength, double fDenominator,
 								   int nSelectedPatternNumber );
+	void patternSizeChangedActionOverAddMeasureBtn( int nLength, double fDenominator,
+	int nSelectedPatternNumber );							   
 
 		/** Returns either #DrumPatternEditor or #PianoRollEditor, depending on
 		 * which of them is currently visible. */
@@ -351,6 +353,9 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 		void hearNotesBtnClick();
 		void quantizeEventsBtnClick();
 
+		void addMeasureBtnClick();
+		void removeMeasureBtnClick();
+
 		void showDrumEditorBtnClick();
 
 		void syncToExternalHorizontalScrollbar(int);
@@ -370,6 +375,7 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 	private:
 
 		void updatePatternInfo();
+		void updatePatternInfoAddMeasure();
 		void updatePatternsToShow();
 		void updateStyleSheet();
 
@@ -404,6 +410,9 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 
 	LCDSpinBox* m_pLCDSpinBoxNumerator;
 	LCDSpinBox* m_pLCDSpinBoxDenominator;
+	Button* m_addMeasure_btn;
+	Button* m_removeMeasure_btn;
+
 
 		// Editor top
 		LCDCombo *			m_pResolutionCombo;

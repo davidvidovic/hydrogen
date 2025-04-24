@@ -405,6 +405,27 @@ PatternEditorPanel::PatternEditorPanel( QWidget *pParent )
 	__show_drum_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
 	pRecLayout->addWidget( __show_drum_btn );
 
+	// Added plus button to add a measure
+	pRecLayout->addSpacing( nLabelSpacing );
+	m_addMeasure_btn = new Button(
+		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "plus.svg", "",
+		QSize( 15, 13 ), tr( "Add a measure" ), false, false );
+	connect( m_addMeasure_btn, SIGNAL( clicked() ),
+			 this, SLOT( addMeasureBtnClick() ) );
+	m_addMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
+	pRecLayout->addWidget( m_addMeasure_btn );
+	//pRecLayout->addSpacing( nLabelSpacing );
+
+	// Added minus button to remove a measure
+	m_removeMeasure_btn = new Button(
+		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "minus.svg", "",
+		QSize( 15, 13 ), tr( "Remove a measure" ), false, false );
+	connect( m_removeMeasure_btn, SIGNAL( clicked() ),
+			 this, SLOT( removeMeasureBtnClick() ) );
+	m_removeMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
+	pRecLayout->addWidget( m_removeMeasure_btn );
+	pRecLayout->addSpacing( nLabelSpacing );
+
 	pToolBarHBox->addStretch();
 	
 	// Since the button to activate the piano roll is shown
@@ -923,6 +944,86 @@ void PatternEditorPanel::hearNotesBtnClick()
 		( HydrogenApp::get_instance() )->showStatusBarMessage( tr( "Hear new notes = Off" ) );
 	}
 }
+
+
+void PatternEditorPanel::addMeasureBtnClick()
+{
+	if ( m_pPattern == nullptr ) {
+		return;
+	}
+
+	// Update numerator to allow only for a maximum pattern length of
+	// four measures.
+	//m_pLCDSpinBoxNumerator->setMaximum( 4 * m_pLCDSpinBoxDenominator->value() );
+
+	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
+	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
+
+	// Also possible maybe, NOT POSSIBLE it just doubles it
+	// int nNewLength = std::round(m_pPattern->getLength() * 2);
+	int nNewLength = std::round(
+		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) / fvalueNumerator *
+		fvalueDenominator * 2);
+
+	/*if ( nNewLength == m_pPattern->getLength() ) {
+		return;
+	}*/
+
+	auto pHydrogenApp = HydrogenApp::get_instance();
+	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
+								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
+
+	/*pHydrogenApp->pushUndoCommand(
+		new SE_patternSizeChangedAction(
+			nNewLength,
+			m_pPattern->getLength(),
+			fvalueDenominator,
+			m_pPattern->getDenominator(),
+			m_nPatternNumber ) );*/
+
+	pHydrogenApp->endUndoMacro();
+
+}
+
+
+void PatternEditorPanel::removeMeasureBtnClick()
+{
+	if ( m_pPattern == nullptr ) {
+		return;
+	}
+
+	// Update numerator to allow only for a maximum pattern length of
+	// four measures.
+	//m_pLCDSpinBoxNumerator->setMaximum( 4 * m_pLCDSpinBoxDenominator->value() );
+
+	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
+	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
+
+	// Also possible maybe
+	//int nNewLength = std::round(m_pPattern->getLength() / 2);
+	int nNewLength = std::round(
+		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) / fvalueNumerator *
+		fvalueDenominator / 2);
+
+	/*if ( nNewLength == m_pPattern->getLength() ) {
+		return;
+	}*/
+
+	auto pHydrogenApp = HydrogenApp::get_instance();
+	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
+								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
+
+	pHydrogenApp->pushUndoCommand(
+		new SE_patternSizeChangedAction(
+			nNewLength,
+			m_pPattern->getLength(),
+			fvalueDenominator,
+			m_pPattern->getDenominator(),
+			m_nPatternNumber ) );
+
+	pHydrogenApp->endUndoMacro();
+}
+
 
 void PatternEditorPanel::quantizeEventsBtnClick()
 {
@@ -1495,6 +1596,51 @@ void PatternEditorPanel::patternSizeChangedAction( int nLength, double fDenomina
 		setCursorColumn( nNewColumn );
 	}
 	
+	EventQueue::get_instance()->pushEvent( Event::Type::PatternModified, -1 );
+}
+
+void PatternEditorPanel::patternSizeChangedActionOverAddMeasureBtn( int nLength, double fDenominator, int nSelectedPatternNumber ) 
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	auto pAudioEngine = pHydrogen->getAudioEngine();
+	auto pSong = pHydrogen->getSong();
+	if ( pSong == nullptr ) {
+	return;
+	}
+	auto pPatternList = pSong->getPatternList();
+	std::shared_ptr<H2Core::Pattern> pPattern = nullptr;
+
+	if ( ( nSelectedPatternNumber != -1 ) &&
+	( nSelectedPatternNumber < pPatternList->size() ) ) {
+	pPattern = pPatternList->get( nSelectedPatternNumber );
+	}
+
+	if ( pPattern == nullptr ) {
+	ERRORLOG( QString( "Pattern corresponding to pattern number [%1] could not be retrieved" )
+	.arg( nSelectedPatternNumber ) );
+	return;
+	}
+
+	pAudioEngine->lock( RIGHT_HERE );
+	// set length and denominator				
+	pPattern->setLength( nLength );
+	//pPattern->setDenominator( static_cast<int>( fDenominator ) );
+	pHydrogen->updateSongSize();
+	pAudioEngine->unlock();
+
+	pHydrogen->setIsModified( true );
+
+	// Ensure the cursor stays within the accessible region of the current
+	// pattern.
+	//if ( pPattern == m_pPattern && m_nCursorColumn >= nLength ) {
+	//int nNewColumn = std::floor( m_pPattern->getLength() /
+	//m_nCursorIncrement ) * m_nCursorIncrement;
+	//if ( m_pPattern->getLength() % m_nCursorIncrement == 0 ) {
+	//nNewColumn -= m_nCursorIncrement;
+	//}
+	//setCursorColumn( nNewColumn );
+	//}
+
 	EventQueue::get_instance()->pushEvent( Event::Type::PatternModified, -1 );
 }
 
