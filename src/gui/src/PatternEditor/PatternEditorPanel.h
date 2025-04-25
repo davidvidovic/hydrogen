@@ -508,6 +508,9 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 
 		virtual void dragEnterEvent(QDragEnterEvent *event) override;
 		virtual void dropEvent(QDropEvent *event) override;
+
+		bool addMeasureClicked;
+		bool removeMeasureClicked;
 };
 
 inline std::shared_ptr<H2Core::Pattern> PatternEditorPanel::getPattern() const {

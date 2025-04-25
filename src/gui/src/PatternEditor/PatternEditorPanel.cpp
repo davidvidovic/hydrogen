@@ -405,7 +405,8 @@ PatternEditorPanel::PatternEditorPanel( QWidget *pParent )
 	__show_drum_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
 	pRecLayout->addWidget( __show_drum_btn );
 
-	// Added plus button to add a measure
+	/* Button to add a measure */
+	addMeasureClicked = false;
 	pRecLayout->addSpacing( nLabelSpacing );
 	m_addMeasure_btn = new Button(
 		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "plus.svg", "",
@@ -416,7 +417,8 @@ PatternEditorPanel::PatternEditorPanel( QWidget *pParent )
 	pRecLayout->addWidget( m_addMeasure_btn );
 	//pRecLayout->addSpacing( nLabelSpacing );
 
-	// Added minus button to remove a measure
+	/* Button to remove a measure */
+	removeMeasureClicked = false;
 	m_removeMeasure_btn = new Button(
 		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "minus.svg", "",
 		QSize( 15, 13 ), tr( "Remove a measure" ), false, false );
@@ -946,85 +948,6 @@ void PatternEditorPanel::hearNotesBtnClick()
 }
 
 
-void PatternEditorPanel::addMeasureBtnClick()
-{
-	if ( m_pPattern == nullptr ) {
-		return;
-	}
-
-	// Update numerator to allow only for a maximum pattern length of
-	// four measures.
-	//m_pLCDSpinBoxNumerator->setMaximum( 4 * m_pLCDSpinBoxDenominator->value() );
-
-	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
-	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
-
-	// Also possible maybe, NOT POSSIBLE it just doubles it
-	// int nNewLength = std::round(m_pPattern->getLength() * 2);
-	int nNewLength = std::round(
-		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) / fvalueNumerator *
-		fvalueDenominator * 2);
-
-	/*if ( nNewLength == m_pPattern->getLength() ) {
-		return;
-	}*/
-
-	auto pHydrogenApp = HydrogenApp::get_instance();
-	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
-								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
-
-	/*pHydrogenApp->pushUndoCommand(
-		new SE_patternSizeChangedAction(
-			nNewLength,
-			m_pPattern->getLength(),
-			fvalueDenominator,
-			m_pPattern->getDenominator(),
-			m_nPatternNumber ) );*/
-
-	pHydrogenApp->endUndoMacro();
-
-}
-
-
-void PatternEditorPanel::removeMeasureBtnClick()
-{
-	if ( m_pPattern == nullptr ) {
-		return;
-	}
-
-	// Update numerator to allow only for a maximum pattern length of
-	// four measures.
-	//m_pLCDSpinBoxNumerator->setMaximum( 4 * m_pLCDSpinBoxDenominator->value() );
-
-	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
-	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
-
-	// Also possible maybe
-	//int nNewLength = std::round(m_pPattern->getLength() / 2);
-	int nNewLength = std::round(
-		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) / fvalueNumerator *
-		fvalueDenominator / 2);
-
-	/*if ( nNewLength == m_pPattern->getLength() ) {
-		return;
-	}*/
-
-	auto pHydrogenApp = HydrogenApp::get_instance();
-	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
-								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
-
-	pHydrogenApp->pushUndoCommand(
-		new SE_patternSizeChangedAction(
-			nNewLength,
-			m_pPattern->getLength(),
-			fvalueDenominator,
-			m_pPattern->getDenominator(),
-			m_nPatternNumber ) );
-
-	pHydrogenApp->endUndoMacro();
-}
-
-
 void PatternEditorPanel::quantizeEventsBtnClick()
 {
 	Preferences::get_instance()->setQuantizeEvents(
@@ -1351,24 +1274,32 @@ void PatternEditorPanel::updatePatternInfo() {
 	}
 
 	// update pattern size LCD
-	const double fNewDenominator =
-		static_cast<double>( m_pPattern->getDenominator() );
-	if ( fNewDenominator != m_pLCDSpinBoxDenominator->value() &&
-		 ! m_pLCDSpinBoxNumerator->hasFocus() ) {
-		m_pLCDSpinBoxDenominator->setValue(
-			fNewDenominator, Event::Trigger::Suppress );
+	if(!addMeasureClicked && !removeMeasureClicked)
+	{
+		const double fNewDenominator =
+			static_cast<double>( m_pPattern->getDenominator() );
+		if ( fNewDenominator != m_pLCDSpinBoxDenominator->value() &&
+			! m_pLCDSpinBoxNumerator->hasFocus() ) {
+			m_pLCDSpinBoxDenominator->setValue(
+				fNewDenominator, Event::Trigger::Suppress );
 
-		// Update numerator to allow only for a maximum pattern length of four
-		// measures.
-		m_pLCDSpinBoxNumerator->setMaximum(
-			4 * m_pLCDSpinBoxDenominator->value() );
+			// Update numerator to allow only for a maximum pattern length of four
+			// measures.
+			//m_pLCDSpinBoxNumerator->setMaximum(
+			//	40 * m_pLCDSpinBoxDenominator->value() );
+		}
+	
+		const double fNewNumerator = static_cast<double>(m_pPattern->numerator());
+		if ( fNewNumerator != m_pLCDSpinBoxNumerator->value() &&
+			! m_pLCDSpinBoxNumerator->hasFocus() ) {
+			m_pLCDSpinBoxNumerator->setValue(
+				fNewNumerator, Event::Trigger::Suppress );
+		}
 	}
-
-	const double fNewNumerator = static_cast<double>(m_pPattern->numerator());
-	if ( fNewNumerator != m_pLCDSpinBoxNumerator->value() &&
-		 ! m_pLCDSpinBoxNumerator->hasFocus() ) {
-		m_pLCDSpinBoxNumerator->setValue(
-			fNewNumerator, Event::Trigger::Suppress );
+	else
+	{
+		addMeasureClicked = false;
+		removeMeasureClicked = false;
 	}
 }
 
@@ -1518,7 +1449,7 @@ void PatternEditorPanel::patternSizeChanged( double fValue ){
 
 	// Update numerator to allow only for a maximum pattern length of
 	// four measures.
-	m_pLCDSpinBoxNumerator->setMaximum( 4 * m_pLCDSpinBoxDenominator->value() );
+	//m_pLCDSpinBoxNumerator->setMaximum( 40 * m_pLCDSpinBoxDenominator->value() );
 
 	double fNewNumerator = m_pLCDSpinBoxNumerator->value();
 	double fNewDenominator = m_pLCDSpinBoxDenominator->value();
@@ -2822,5 +2753,67 @@ void PatternEditorPanel::pasteNotesToRowOfAllPatterns( int nRow, int nPitch ) {
 			}
 		}
 	}
+	pHydrogenApp->endUndoMacro();
+}
+
+
+/* This function doubles the existing pattern */
+void PatternEditorPanel::addMeasureBtnClick()
+{
+	if ( m_pPattern == nullptr ) {
+		return;
+	}
+	addMeasureClicked = true;
+
+	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
+	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
+
+	int nNewLength = std::round(m_pPattern->getLength() + 
+		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator /
+		fvalueDenominator);
+
+	auto pHydrogenApp = HydrogenApp::get_instance();
+	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
+								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
+
+	pHydrogenApp->pushUndoCommand(
+		new SE_patternSizeChangedAction(
+			nNewLength,
+			m_pPattern->getLength(),
+			fvalueDenominator,
+			m_pPattern->getDenominator(),
+			m_nPatternNumber ) );
+
+	pHydrogenApp->endUndoMacro();
+
+}
+
+
+void PatternEditorPanel::removeMeasureBtnClick()
+{
+	if ( m_pPattern == nullptr ) {
+		return;
+	}
+	removeMeasureClicked = true;
+
+	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
+	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
+
+	int nNewLength = std::round(m_pPattern->getLength() - 
+		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator /
+		fvalueDenominator);
+
+	auto pHydrogenApp = HydrogenApp::get_instance();
+	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
+								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
+
+	pHydrogenApp->pushUndoCommand(
+		new SE_patternSizeChangedAction(
+			nNewLength,
+			m_pPattern->getLength(),
+			fvalueDenominator,
+			m_pPattern->getDenominator(),
+			m_nPatternNumber ) );
+
 	pHydrogenApp->endUndoMacro();
 }
