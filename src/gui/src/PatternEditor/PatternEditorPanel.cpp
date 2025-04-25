@@ -2765,12 +2765,14 @@ void PatternEditorPanel::addMeasureBtnClick()
 	}
 	addMeasureClicked = true;
 
+	/* Change dispaleyd Pattern length */
+
 	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
 	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
 
-	int nNewLength = std::round(m_pPattern->getLength() + 
-		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator /
-		fvalueDenominator);
+	int extendLength = std::round(static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator / fvalueDenominator);
+
+	int nNewLength = std::round(m_pPattern->getLength() + extendLength);
 
 	auto pHydrogenApp = HydrogenApp::get_instance();
 	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
@@ -2785,6 +2787,57 @@ void PatternEditorPanel::addMeasureBtnClick()
 			m_nPatternNumber ) );
 
 	pHydrogenApp->endUndoMacro();
+
+
+	/* Copy all Notes into the extended region */
+
+	for ( int ii = 0; ii < m_db.size(); ++ii ) {
+		auto row = getRowDB( ii );
+
+		std::vector< std::shared_ptr<Note> > existingNotes;
+
+		// Loop over each position in a row
+		for( int nPosition = 0; nPosition < m_pPattern->getLength(); nPosition++ )
+		{
+			existingNotes = m_pPattern->findNotes(nPosition, row.nInstrumentID, row.sType );
+			int nNewKey = KEY_MIN;
+			int nNewOctave = OCTAVE_DEFAULT;
+			bool bIsNoteOff = false;
+			
+			int newPosition = nPosition + extendLength;
+
+			if ( existingNotes.size() > 0 ) {
+				// Check if note already exists in this position
+
+				auto pOldNote = m_pPattern->findNote(
+					newPosition, row.nInstrumentID, row.sType,
+					static_cast<Note::Key>(nNewKey), static_cast<Note::Octave>(nNewOctave) );
+				if ( pOldNote != nullptr ) {
+					continue;
+				}
+				else
+				{
+					pHydrogenApp->pushUndoCommand(
+						new SE_addOrRemoveNoteAction(
+							newPosition,
+							row.nInstrumentID,
+							row.sType,
+							m_nPatternNumber,
+							LENGTH_ENTIRE_SAMPLE,
+							VELOCITY_DEFAULT,
+							PAN_DEFAULT,
+							LEAD_LAG_DEFAULT,
+							nNewKey,
+							nNewOctave,
+							PROBABILITY_DEFAULT,
+							/* bIsDelete */ false,
+							bIsNoteOff,
+							row.bMappedToDrumkit,
+							PatternEditor::AddNoteAction::None ) );
+				}
+			}
+		}
+	}
 
 }
 
@@ -2796,12 +2849,19 @@ void PatternEditorPanel::removeMeasureBtnClick()
 	}
 	removeMeasureClicked = true;
 
+	/* Change dispaleyd Pattern length */
+
 	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
 	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
 
-	int nNewLength = std::round(m_pPattern->getLength() - 
-		static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator /
-		fvalueDenominator);
+	int removedLength = std::round(static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator / fvalueDenominator);
+
+	int nNewLength = std::round(m_pPattern->getLength() - removedLength);
+
+	if(nNewLength < 0)
+	{
+		return;
+	}
 
 	auto pHydrogenApp = HydrogenApp::get_instance();
 	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
@@ -2816,4 +2876,49 @@ void PatternEditorPanel::removeMeasureBtnClick()
 			m_nPatternNumber ) );
 
 	pHydrogenApp->endUndoMacro();
+
+
+	/* Delete all Notes located in the removed/hidden region */
+
+	for ( int ii = 0; ii < m_db.size(); ++ii ) {
+		auto row = getRowDB( ii );
+
+		std::vector< std::shared_ptr<Note> > existingNotes;
+
+		// Loop over each position in a row
+		for( int nPosition = m_pPattern->getLength(); nPosition < (m_pPattern->getLength() + removedLength); nPosition++ )
+		{
+			existingNotes = m_pPattern->findNotes(nPosition, row.nInstrumentID, row.sType );
+			int nNewKey = KEY_MIN;
+			int nNewOctave = OCTAVE_DEFAULT;
+			bool bIsNoteOff = false;
+
+			if ( existingNotes.size() > 0 ) {
+				// Check if note already exists in this position, if does delete it
+
+				auto pOldNote = m_pPattern->findNote(
+					nPosition, row.nInstrumentID, row.sType,
+					static_cast<Note::Key>(nNewKey), static_cast<Note::Octave>(nNewOctave) );
+				if ( pOldNote != nullptr ) {
+					pHydrogenApp->pushUndoCommand(
+						new SE_addOrRemoveNoteAction(
+							nPosition,
+							row.nInstrumentID,
+							row.sType,
+							m_nPatternNumber,
+							LENGTH_ENTIRE_SAMPLE,
+							VELOCITY_DEFAULT,
+							PAN_DEFAULT,
+							LEAD_LAG_DEFAULT,
+							nNewKey,
+							nNewOctave,
+							PROBABILITY_DEFAULT,
+							/* bIsDelete */ true,
+							bIsNoteOff,
+							row.bMappedToDrumkit,
+							PatternEditor::AddNoteAction::None ) );
+				}
+			}
+		}
+	}
 }
