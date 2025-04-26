@@ -288,8 +288,8 @@ void PatternEditorRuler::createBackground()
 		return;
 	}
 
-	double valueNumerator = m_pPatternEditorPanel->getNumerator();
-	double valueDenominator = m_pPatternEditorPanel->getDenominator();
+	double valueNumerator = m_pPatternEditorPanel->getSelectedNumeratorCount();
+	double valueDenominator = m_pPatternEditorPanel->getSelectedDenominatorCount();
 
 	int newLength = m_pPatternEditorPanel->getSelectedPatternLength();
 	m_nRulerWidth = PatternEditor::nMargin + newLength;

@@ -436,11 +436,15 @@ PatternEditorPanel::PatternEditorPanel( QWidget *pParent )
 	const auto pPatternList = pSong->getPatternList();
 	int numberOfPatterns = pPatternList->size();
 	added_count = new int[numberOfPatterns];
+	numeratorPatternCount = new double[numberOfPatterns];
+	denominatorPatternCount = new double[numberOfPatterns];
+
 	for(int kk = 0; kk < numberOfPatterns; kk++)
 	{
 		added_count[kk] = 1;
+		numeratorPatternCount[kk] = 4.0;
+		denominatorPatternCount[kk] = 4.0;
 	}
-	// 1 because a measure exists initially
 	
 	addMeasureClicked = false;
 	pRecLayout->addSpacing( nLabelSpacing );
@@ -971,6 +975,9 @@ void PatternEditorPanel::selectedPatternChangedEvent()
 	updateEditors();
 
 	resizeEvent( nullptr ); // force an update of the scrollbars
+
+	m_pLCDSpinBoxNumerator->setValue(numeratorPatternCount[m_nPatternNumber], Event::Trigger::Suppress);
+	m_pLCDSpinBoxDenominator->setValue(denominatorPatternCount[m_nPatternNumber], Event::Trigger::Suppress);
 }
 
 void PatternEditorPanel::hearNotesBtnClick()
@@ -1313,7 +1320,7 @@ void PatternEditorPanel::updatePatternInfo() {
 	// update pattern size LCD
 	if(!addMeasureClicked && !removeMeasureClicked)
 	{
-		if(added_count[m_nPatternNumber] == 1) // prevents changing tabs, coming back and numerator has changed
+		if(added_count[m_nPatternNumber] == 1) // prevents changing values when added a blank measure
 		{
 			const double fNewDenominator =
 				static_cast<double>( m_pPattern->getDenominator() );
@@ -1334,6 +1341,9 @@ void PatternEditorPanel::updatePatternInfo() {
 				m_pLCDSpinBoxNumerator->setValue(
 					fNewNumerator, Event::Trigger::Suppress );
 			}
+
+			numeratorPatternCount[m_nPatternNumber] = fNewNumerator;
+			denominatorPatternCount[m_nPatternNumber] = fNewDenominator;
 		}
 	}
 	else
@@ -3113,4 +3123,44 @@ int PatternEditorPanel::getSelectedAddedCount()
 int PatternEditorPanel::getSelectedPatternLength()
 {
 	return m_pPattern->getLength();
+}
+
+
+double PatternEditorPanel::getSelectedNumeratorCount()
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	const auto pSong = pHydrogen->getSong();
+	int m_nPatternNumber = 0;
+
+	if ( pSong != nullptr ) {
+		m_nPatternNumber = pHydrogen->getSelectedPatternNumber();
+	}
+
+	if ( m_nPatternNumber != -1 )	
+	{
+		// m_pLCDSpinBoxNumerator->setValue(numeratorPatternCount[m_nPatternNumber], Event::Trigger::Suppress);
+		return numeratorPatternCount[m_nPatternNumber];
+	}
+
+	return -1;	
+}
+
+
+double PatternEditorPanel::getSelectedDenominatorCount()
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	const auto pSong = pHydrogen->getSong();
+	int m_nPatternNumber = 0;
+
+	if ( pSong != nullptr ) {
+		m_nPatternNumber = pHydrogen->getSelectedPatternNumber();
+	}
+
+	if ( m_nPatternNumber != -1 )
+	{
+		//m_pLCDSpinBoxDenominator->setValue(denominatorPatternCount[m_nPatternNumber], Event::Trigger::Suppress);
+		return denominatorPatternCount[m_nPatternNumber];
+	}
+
+	return -1;	
 }

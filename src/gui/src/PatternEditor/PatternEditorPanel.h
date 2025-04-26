@@ -343,6 +343,8 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 		double getDenominator();
 		int getSelectedAddedCount();
 		int getSelectedPatternLength();
+		double getSelectedNumeratorCount();
+		double getSelectedDenominatorCount();
 
 	public slots:
 		void showDrumEditor();
@@ -421,6 +423,8 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 	Button* m_removeNewMeasure_btn;
 	int duplicate_count;
 	int* added_count;
+	double* numeratorPatternCount;
+	double* denominatorPatternCount;
 
 
 		// Editor top
