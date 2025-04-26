@@ -288,6 +288,13 @@ void PatternEditorRuler::createBackground()
 		return;
 	}
 
+	double valueNumerator = m_pPatternEditorPanel->getNumerator();
+	double valueDenominator = m_pPatternEditorPanel->getDenominator();
+
+	int newLength = m_pPatternEditorPanel->getSelectedPatternLength();
+	m_nRulerWidth = PatternEditor::nMargin + newLength;
+	m_nWidthActive = m_nRulerWidth;
+
 	const auto pPref = H2Core::Preferences::get_instance();
 
 	// Resize pixmap if pixel ratio has changed
@@ -326,6 +333,29 @@ void PatternEditorRuler::createBackground()
 
 	// Draw numbers and quarter ticks
 	painter.setPen( textColor );
+
+	
+	double fraction = static_cast<double>(valueNumerator) / valueDenominator;
+	int range_end_int = static_cast<int>(std::ceil(4 * fraction));
+	int added_count = m_pPatternEditorPanel->getSelectedAddedCount();
+	if(added_count == -1)
+	{
+		return;
+	}
+
+	for( int cnt = 0; cnt < added_count; cnt++)
+	{
+		for ( int ii = 0; ii < range_end_int ; ii++ ) {			
+			//const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * H2Core::nTicksPerQuarter * range_end_int;
+			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			painter.drawLine( nText_x, height() - 13, nText_x, height() - 1 );
+			painter.drawText( nText_x + 3, 0, 60, m_nRulerHeight,
+							Qt::AlignVCenter | Qt::AlignLeft,
+							QString("%1").arg(ii + 1) );
+		}
+	}
+
+	/*
 	for ( int ii = 0; ii < 64 ; ii += 4 ) {
 		const int nText_x = PatternEditor::nMargin +
 			H2Core::nTicksPerQuarter / 4 * ii * m_fGridWidth;
@@ -334,6 +364,7 @@ void PatternEditorRuler::createBackground()
 						  Qt::AlignVCenter | Qt::AlignLeft,
 						  QString("%1").arg(ii / 4 + 1) );
 	}
+	*/
 
 	// Draw remaining ticks
 	float fStep;

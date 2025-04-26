@@ -339,6 +339,11 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 		 * focus.*/
 		bool hasPatternEditorFocus() const;
 
+		double getNumerator();
+		double getDenominator();
+		int getSelectedAddedCount();
+		int getSelectedPatternLength();
+
 	public slots:
 		void showDrumEditor();
 		void showPianoRollEditor();
@@ -415,7 +420,7 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 	Button* m_addNewMeasure_btn;
 	Button* m_removeNewMeasure_btn;
 	int duplicate_count;
-	int added_count;
+	int* added_count;
 
 
 		// Editor top

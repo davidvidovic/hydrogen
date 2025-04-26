@@ -431,7 +431,17 @@ PatternEditorPanel::PatternEditorPanel( QWidget *pParent )
 
 
 	/* Button to add a new measure */
-	added_count = 1; // 1 because a measure exists initially
+	//Hydrogen *pHydrogen = Hydrogen::get_instance();
+	//const auto pSong = pHydrogen->getSong();
+	const auto pPatternList = pSong->getPatternList();
+	int numberOfPatterns = pPatternList->size();
+	added_count = new int[numberOfPatterns];
+	for(int kk = 0; kk < numberOfPatterns; kk++)
+	{
+		added_count[kk] = 1;
+	}
+	// 1 because a measure exists initially
+	
 	addMeasureClicked = false;
 	pRecLayout->addSpacing( nLabelSpacing );
 	m_addNewMeasure_btn = new Button(
@@ -1303,24 +1313,27 @@ void PatternEditorPanel::updatePatternInfo() {
 	// update pattern size LCD
 	if(!addMeasureClicked && !removeMeasureClicked)
 	{
-		const double fNewDenominator =
-			static_cast<double>( m_pPattern->getDenominator() );
-		if ( fNewDenominator != m_pLCDSpinBoxDenominator->value() &&
-			! m_pLCDSpinBoxNumerator->hasFocus() ) {
-			m_pLCDSpinBoxDenominator->setValue(
-				fNewDenominator, Event::Trigger::Suppress );
+		if(added_count[m_nPatternNumber] == 1) // prevents changing tabs, coming back and numerator has changed
+		{
+			const double fNewDenominator =
+				static_cast<double>( m_pPattern->getDenominator() );
+			if ( fNewDenominator != m_pLCDSpinBoxDenominator->value() &&
+				! m_pLCDSpinBoxNumerator->hasFocus() ) {
+				m_pLCDSpinBoxDenominator->setValue(
+					fNewDenominator, Event::Trigger::Suppress );
 
-			// Update numerator to allow only for a maximum pattern length of four
-			// measures.
-			//m_pLCDSpinBoxNumerator->setMaximum(
-			//	40 * m_pLCDSpinBoxDenominator->value() );
-		}
-	
-		const double fNewNumerator = static_cast<double>(m_pPattern->numerator());
-		if ( fNewNumerator != m_pLCDSpinBoxNumerator->value() &&
-			! m_pLCDSpinBoxNumerator->hasFocus() ) {
-			m_pLCDSpinBoxNumerator->setValue(
-				fNewNumerator, Event::Trigger::Suppress );
+				// Update numerator to allow only for a maximum pattern length of four
+				// measures.
+				//m_pLCDSpinBoxNumerator->setMaximum(
+				//	40 * m_pLCDSpinBoxDenominator->value() );
+			}
+		
+			const double fNewNumerator = static_cast<double>(m_pPattern->numerator());
+			if ( fNewNumerator != m_pLCDSpinBoxNumerator->value() &&
+				! m_pLCDSpinBoxNumerator->hasFocus() ) {
+				m_pLCDSpinBoxNumerator->setValue(
+					fNewNumerator, Event::Trigger::Suppress );
+			}
 		}
 	}
 	else
@@ -2919,7 +2932,19 @@ void PatternEditorPanel::addNewMeasureBtnClick()
 	}
 	addMeasureClicked = true;
 
-	++added_count;
+	auto pHydrogen = Hydrogen::get_instance();
+	const auto pSong = pHydrogen->getSong();
+
+	if ( pSong != nullptr ) {
+		m_nPatternNumber = pHydrogen->getSelectedPatternNumber();
+	}
+
+	if(m_nPatternNumber == -1)
+	{
+		return;
+	}
+
+	++added_count[m_nPatternNumber];
 
 	/* Change dispaleyd Pattern length */
 
@@ -2944,7 +2969,7 @@ void PatternEditorPanel::addNewMeasureBtnClick()
 
 	pHydrogenApp->endUndoMacro();
 
-	m_pPatternEditorRuler->resizeRuler(nNewLength, fvalueNumerator, fvalueDenominator, added_count);
+	m_pPatternEditorRuler->resizeRuler(nNewLength, fvalueNumerator, fvalueDenominator, added_count[m_nPatternNumber]);
 
 	// Delete newly releved notes?
 }
@@ -2955,10 +2980,22 @@ void PatternEditorPanel::removeNewMeasureBtnClick()
 	if ( m_pPattern == nullptr ) {
 		return;
 	}
-	
-	if(added_count > 0)
+
+	auto pHydrogen = Hydrogen::get_instance();
+	const auto pSong = pHydrogen->getSong();
+
+	if ( pSong != nullptr ) {
+		m_nPatternNumber = pHydrogen->getSelectedPatternNumber();
+	}
+
+	if(m_nPatternNumber == -1)
 	{
-		--added_count;
+		return;
+	}
+	
+	if(added_count[m_nPatternNumber] > 0)
+	{
+		--added_count[m_nPatternNumber];
 	}
 	else
 	{
@@ -2995,7 +3032,7 @@ void PatternEditorPanel::removeNewMeasureBtnClick()
 
 	pHydrogenApp->endUndoMacro();
 
-	m_pPatternEditorRuler->resizeRuler(nNewLength, fvalueNumerator, fvalueDenominator, added_count);
+	m_pPatternEditorRuler->resizeRuler(nNewLength, fvalueNumerator, fvalueDenominator, added_count[m_nPatternNumber]);
 
 
 	/* Delete all Notes located in the removed/hidden region */
@@ -3041,4 +3078,39 @@ void PatternEditorPanel::removeNewMeasureBtnClick()
 			}
 		}
 	}
+}
+
+
+double PatternEditorPanel::getNumerator()
+{
+	return m_pLCDSpinBoxNumerator->value();
+}
+
+
+double PatternEditorPanel::getDenominator()
+{
+	return m_pLCDSpinBoxDenominator->value();
+}
+
+int PatternEditorPanel::getSelectedAddedCount()
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	const auto pSong = pHydrogen->getSong();
+	int m_nPatternNumber = 0;
+
+	if ( pSong != nullptr ) {
+		m_nPatternNumber = pHydrogen->getSelectedPatternNumber();
+	}
+
+	if ( m_nPatternNumber != -1 )
+	{
+		return added_count[m_nPatternNumber];
+	}
+
+	return -1;	
+}
+
+int PatternEditorPanel::getSelectedPatternLength()
+{
+	return m_pPattern->getLength();
 }
