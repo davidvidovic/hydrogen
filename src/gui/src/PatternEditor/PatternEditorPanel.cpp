@@ -405,28 +405,55 @@ PatternEditorPanel::PatternEditorPanel( QWidget *pParent )
 	__show_drum_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
 	pRecLayout->addWidget( __show_drum_btn );
 
-	/* Button to add a measure */
+	/* Button to add a duplicate measure */
+	duplicate_count = 0;
 	addMeasureClicked = false;
 	pRecLayout->addSpacing( nLabelSpacing );
-	m_addMeasure_btn = new Button(
-		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "plus.svg", "",
-		QSize( 15, 13 ), tr( "Add a measure" ), false, false );
-	connect( m_addMeasure_btn, SIGNAL( clicked() ),
-			 this, SLOT( addMeasureBtnClick() ) );
-	m_addMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
-	pRecLayout->addWidget( m_addMeasure_btn );
+	m_addDuplicateMeasure_btn = new Button(
+		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "duplicate.svg", "",
+		QSize( 15, 13 ), tr( "Add a measure duplicate" ), false, false );
+	connect( m_addDuplicateMeasure_btn, SIGNAL( clicked() ),
+			 this, SLOT( addDuplicateMeasureBtnClick() ) );
+	m_addDuplicateMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
+	pRecLayout->addWidget( m_addDuplicateMeasure_btn );
 	//pRecLayout->addSpacing( nLabelSpacing );
 
-	/* Button to remove a measure */
+	/* Button to remove a duplicate measure */
 	removeMeasureClicked = false;
-	m_removeMeasure_btn = new Button(
-		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "minus.svg", "",
-		QSize( 15, 13 ), tr( "Remove a measure" ), false, false );
-	connect( m_removeMeasure_btn, SIGNAL( clicked() ),
-			 this, SLOT( removeMeasureBtnClick() ) );
-	m_removeMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
-	pRecLayout->addWidget( m_removeMeasure_btn );
+	m_removeDuplicateMeasure_btn = new Button(
+		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "remove_duplicate.svg", "",
+		QSize( 15, 13 ), tr( "Remove a measure duplicate" ), false, false );
+	connect( m_removeDuplicateMeasure_btn, SIGNAL( clicked() ),
+			 this, SLOT( removeDuplicateMeasureBtnClick() ) );
+	m_removeDuplicateMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
+	pRecLayout->addWidget( m_removeDuplicateMeasure_btn );
 	pRecLayout->addSpacing( nLabelSpacing );
+
+
+	/* Button to add a new measure */
+	added_count = 1; // 1 because a measure exists initially
+	addMeasureClicked = false;
+	pRecLayout->addSpacing( nLabelSpacing );
+	m_addNewMeasure_btn = new Button(
+		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "plus.svg", "",
+		QSize( 15, 13 ), tr( "Add blank measure" ), false, false );
+	connect( m_addNewMeasure_btn, SIGNAL( clicked() ),
+			 this, SLOT( addNewMeasureBtnClick() ) );
+	m_addNewMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
+	pRecLayout->addWidget( m_addNewMeasure_btn );
+	//pRecLayout->addSpacing( nLabelSpacing );
+
+	/* Button to remove a new measure */
+	removeMeasureClicked = false;
+	m_removeNewMeasure_btn = new Button(
+		m_pRec, QSize( 21, 18 ), Button::Type::Toggle, "minus.svg", "",
+		QSize( 15, 13 ), tr( "Remove blank measure" ), false, false );
+	connect( m_removeNewMeasure_btn, SIGNAL( clicked() ),
+			 this, SLOT( removeNewMeasureBtnClick() ) );
+	m_removeNewMeasure_btn->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
+	pRecLayout->addWidget( m_removeNewMeasure_btn );
+	pRecLayout->addSpacing( nLabelSpacing );
+
 
 	pToolBarHBox->addStretch();
 	
@@ -1454,6 +1481,9 @@ void PatternEditorPanel::patternSizeChanged( double fValue ){
 	double fNewNumerator = m_pLCDSpinBoxNumerator->value();
 	double fNewDenominator = m_pLCDSpinBoxDenominator->value();
 
+	// Tell Ruler that it needs to be resized
+	m_pPatternEditorRuler->setRulerResized(true);
+
 	/* Note: user can input a non integer numerator and this feature
 	   is very powerful because it allows to set really any possible
 	   pattern size (in ticks) using ANY arbitrary denominator.
@@ -1527,51 +1557,6 @@ void PatternEditorPanel::patternSizeChangedAction( int nLength, double fDenomina
 		setCursorColumn( nNewColumn );
 	}
 	
-	EventQueue::get_instance()->pushEvent( Event::Type::PatternModified, -1 );
-}
-
-void PatternEditorPanel::patternSizeChangedActionOverAddMeasureBtn( int nLength, double fDenominator, int nSelectedPatternNumber ) 
-{
-	auto pHydrogen = Hydrogen::get_instance();
-	auto pAudioEngine = pHydrogen->getAudioEngine();
-	auto pSong = pHydrogen->getSong();
-	if ( pSong == nullptr ) {
-	return;
-	}
-	auto pPatternList = pSong->getPatternList();
-	std::shared_ptr<H2Core::Pattern> pPattern = nullptr;
-
-	if ( ( nSelectedPatternNumber != -1 ) &&
-	( nSelectedPatternNumber < pPatternList->size() ) ) {
-	pPattern = pPatternList->get( nSelectedPatternNumber );
-	}
-
-	if ( pPattern == nullptr ) {
-	ERRORLOG( QString( "Pattern corresponding to pattern number [%1] could not be retrieved" )
-	.arg( nSelectedPatternNumber ) );
-	return;
-	}
-
-	pAudioEngine->lock( RIGHT_HERE );
-	// set length and denominator				
-	pPattern->setLength( nLength );
-	//pPattern->setDenominator( static_cast<int>( fDenominator ) );
-	pHydrogen->updateSongSize();
-	pAudioEngine->unlock();
-
-	pHydrogen->setIsModified( true );
-
-	// Ensure the cursor stays within the accessible region of the current
-	// pattern.
-	//if ( pPattern == m_pPattern && m_nCursorColumn >= nLength ) {
-	//int nNewColumn = std::floor( m_pPattern->getLength() /
-	//m_nCursorIncrement ) * m_nCursorIncrement;
-	//if ( m_pPattern->getLength() % m_nCursorIncrement == 0 ) {
-	//nNewColumn -= m_nCursorIncrement;
-	//}
-	//setCursorColumn( nNewColumn );
-	//}
-
 	EventQueue::get_instance()->pushEvent( Event::Type::PatternModified, -1 );
 }
 
@@ -2757,8 +2742,7 @@ void PatternEditorPanel::pasteNotesToRowOfAllPatterns( int nRow, int nPitch ) {
 }
 
 
-/* This function doubles the existing pattern */
-void PatternEditorPanel::addMeasureBtnClick()
+void PatternEditorPanel::addDuplicateMeasureBtnClick()
 {
 	if ( m_pPattern == nullptr ) {
 		return;
@@ -2788,6 +2772,7 @@ void PatternEditorPanel::addMeasureBtnClick()
 
 	pHydrogenApp->endUndoMacro();
 
+	//m_pPatternEditorRuler->resizeRuler(nNewLength);
 
 	/* Copy all Notes into the extended region */
 
@@ -2842,7 +2827,7 @@ void PatternEditorPanel::addMeasureBtnClick()
 }
 
 
-void PatternEditorPanel::removeMeasureBtnClick()
+void PatternEditorPanel::removeDuplicateMeasureBtnClick()
 {
 	if ( m_pPattern == nullptr ) {
 		return;
@@ -2876,6 +2861,141 @@ void PatternEditorPanel::removeMeasureBtnClick()
 			m_nPatternNumber ) );
 
 	pHydrogenApp->endUndoMacro();
+
+	//m_pPatternEditorRuler->resizeRuler(nNewLength);
+
+
+	/* Delete all Notes located in the removed/hidden region */
+
+	for ( int ii = 0; ii < m_db.size(); ++ii ) {
+		auto row = getRowDB( ii );
+
+		std::vector< std::shared_ptr<Note> > existingNotes;
+
+		// Loop over each position in a row
+		for( int nPosition = m_pPattern->getLength(); nPosition < (m_pPattern->getLength() + removedLength); nPosition++ )
+		{
+			existingNotes = m_pPattern->findNotes(nPosition, row.nInstrumentID, row.sType );
+			int nNewKey = KEY_MIN;
+			int nNewOctave = OCTAVE_DEFAULT;
+			bool bIsNoteOff = false;
+
+			if ( existingNotes.size() > 0 ) {
+				// Check if note already exists in this position, if does delete it
+
+				auto pOldNote = m_pPattern->findNote(
+					nPosition, row.nInstrumentID, row.sType,
+					static_cast<Note::Key>(nNewKey), static_cast<Note::Octave>(nNewOctave) );
+				if ( pOldNote != nullptr ) {
+					pHydrogenApp->pushUndoCommand(
+						new SE_addOrRemoveNoteAction(
+							nPosition,
+							row.nInstrumentID,
+							row.sType,
+							m_nPatternNumber,
+							LENGTH_ENTIRE_SAMPLE,
+							VELOCITY_DEFAULT,
+							PAN_DEFAULT,
+							LEAD_LAG_DEFAULT,
+							nNewKey,
+							nNewOctave,
+							PROBABILITY_DEFAULT,
+							/* bIsDelete */ true,
+							bIsNoteOff,
+							row.bMappedToDrumkit,
+							PatternEditor::AddNoteAction::None ) );
+				}
+			}
+		}
+	}
+}
+
+
+
+void PatternEditorPanel::addNewMeasureBtnClick()
+{
+	if ( m_pPattern == nullptr ) {
+		return;
+	}
+	addMeasureClicked = true;
+
+	++added_count;
+
+	/* Change dispaleyd Pattern length */
+
+	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
+	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
+
+	int extendLength = std::round(static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator / fvalueDenominator);
+
+	int nNewLength = std::round(m_pPattern->getLength() + extendLength);
+
+	auto pHydrogenApp = HydrogenApp::get_instance();
+	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
+								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
+
+	pHydrogenApp->pushUndoCommand(
+		new SE_patternSizeChangedAction(
+			nNewLength,
+			m_pPattern->getLength(),
+			fvalueDenominator,
+			m_pPattern->getDenominator(),
+			m_nPatternNumber ) );
+
+	pHydrogenApp->endUndoMacro();
+
+	m_pPatternEditorRuler->resizeRuler(nNewLength, fvalueNumerator, fvalueDenominator, added_count);
+
+	// Delete newly releved notes?
+}
+
+
+void PatternEditorPanel::removeNewMeasureBtnClick()
+{
+	if ( m_pPattern == nullptr ) {
+		return;
+	}
+	
+	if(added_count > 0)
+	{
+		--added_count;
+	}
+	else
+	{
+		return;
+	}
+
+	removeMeasureClicked = true;
+
+	/* Change dispaleyd Pattern length */
+
+	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
+	double fvalueDenominator = m_pLCDSpinBoxDenominator->value();
+
+	int removedLength = std::round(static_cast<double>( 4 * H2Core::nTicksPerQuarter ) * fvalueNumerator / fvalueDenominator);
+
+	int nNewLength = std::round(m_pPattern->getLength() - removedLength);
+
+	if(nNewLength < 0)
+	{
+		return;
+	}
+
+	auto pHydrogenApp = HydrogenApp::get_instance();
+	pHydrogenApp->beginUndoMacro( tr( "Change pattern size to %1/%2" )
+								  .arg( fvalueNumerator ).arg( fvalueDenominator ) );
+
+	pHydrogenApp->pushUndoCommand(
+		new SE_patternSizeChangedAction(
+			nNewLength,
+			m_pPattern->getLength(),
+			fvalueDenominator,
+			m_pPattern->getDenominator(),
+			m_nPatternNumber ) );
+
+	pHydrogenApp->endUndoMacro();
+
+	m_pPatternEditorRuler->resizeRuler(nNewLength, fvalueNumerator, fvalueDenominator, added_count);
 
 
 	/* Delete all Notes located in the removed/hidden region */

@@ -82,6 +82,12 @@ class PatternEditorRuler :  public QWidget, protected WidgetWithScalableFont<8, 
 		void invalidateBackground();
 		bool m_bBackgroundInvalid;
 
+		void resizeRuler(int, int, int, int);
+		void createResizedBackground(int, int, int);
+
+		bool getRulerResized();
+		void setRulerResized(bool);
+
 	public slots:
 		void updateEditor( bool bRedrawAll = false );
 
@@ -90,6 +96,7 @@ class PatternEditorRuler :  public QWidget, protected WidgetWithScalableFont<8, 
 		uint m_nRulerWidth;
 		uint m_nRulerHeight;
 		float m_fGridWidth;
+		bool rulerResized;
 
 		QPixmap *m_pBackgroundPixmap;
 

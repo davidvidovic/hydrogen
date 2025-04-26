@@ -40,6 +40,7 @@ using namespace H2Core;
 #include "NotePropertiesRuler.h"
 #include "../HydrogenApp.h"
 #include "../Skin.h"
+#include <cmath>
 
 
 PatternEditorRuler::PatternEditorRuler( QWidget* parent )
@@ -84,6 +85,8 @@ PatternEditorRuler::PatternEditorRuler( QWidget* parent )
 	update();
 
 	HydrogenApp::get_instance()->addEventListener( this );
+
+	rulerResized = false;
 }
 
 
@@ -280,6 +283,11 @@ void PatternEditorRuler::invalidateBackground()
 
 void PatternEditorRuler::createBackground()
 {
+	if(rulerResized)
+	{
+		return;
+	}
+
 	const auto pPref = H2Core::Preferences::get_instance();
 
 	// Resize pixmap if pixel ratio has changed
@@ -481,4 +489,105 @@ void PatternEditorRuler::zoomOut()
 void PatternEditorRuler::stateChangedEvent( const H2Core::AudioEngine::State& )
 {
 	updatePosition();
+}
+
+void PatternEditorRuler::resizeRuler(int newLength, int valueNumerator, int valueDenominator, int added_count)
+{
+	rulerResized = true;
+
+	m_nRulerHeight = 25;
+	m_nRulerWidth = PatternEditor::nMargin + newLength;
+
+	resize( m_nRulerWidth, m_nRulerHeight );
+
+	// Edit labels
+	updateActiveRange();
+	createResizedBackground(valueNumerator, valueDenominator, added_count);
+}
+
+
+void PatternEditorRuler::createResizedBackground(int valueNumerator, int valueDenominator, int added_count)
+{
+	const auto pPref = H2Core::Preferences::get_instance();
+	m_nWidthActive = m_nRulerWidth;
+
+	// Resize pixmap if pixel ratio has changed
+	qreal pixelRatio = devicePixelRatio();
+	if ( m_pBackgroundPixmap->width() != m_nRulerWidth ||
+		 m_pBackgroundPixmap->height() != m_nRulerHeight ||
+		 m_pBackgroundPixmap->devicePixelRatio() != pixelRatio ) {
+		delete m_pBackgroundPixmap;
+		m_pBackgroundPixmap = new QPixmap( width()  * pixelRatio , height() * pixelRatio );
+		m_pBackgroundPixmap->setDevicePixelRatio( pixelRatio );
+	}
+
+	QColor backgroundColor( pPref->getTheme().m_color.m_patternEditor_alternateRowColor.darker( 120 ) );
+	QColor textColor = pPref->getTheme().m_color.m_patternEditor_textColor;
+	textColor.setAlpha( 220 );
+	
+	QColor lineColor = pPref->getTheme().m_color.m_patternEditor_lineColor;
+
+	QPainter painter( m_pBackgroundPixmap );
+	
+	painter.fillRect( QRect( 0, 0, width(), height() ), backgroundColor );
+
+	// gray background for unusable section of pattern
+	if ( m_nRulerWidth - m_nWidthActive != 0 ) {
+		painter.fillRect( m_nWidthActive, 0, m_nRulerWidth - m_nWidthActive,
+						  m_nRulerHeight,
+						  pPref->getTheme().m_color.m_midLightColor );
+	}
+
+	// numbers
+
+	QFont font( pPref->getTheme().m_font.m_sApplicationFontFamily, getPointSize( pPref->getTheme().m_font.m_fontSize ) );
+	painter.setFont(font);
+
+	const int nResolution = m_pPatternEditorPanel->getResolution();
+
+	// Draw numbers and quarter ticks
+	painter.setPen( textColor );
+
+	double fraction = static_cast<double>(valueNumerator) / valueDenominator;
+	int range_end_int = static_cast<int>(std::ceil(4 * fraction));
+	for( int cnt = 0; cnt < added_count; cnt++)
+	{
+		for ( int ii = 0; ii < range_end_int ; ii++ ) {			
+			//const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * H2Core::nTicksPerQuarter * range_end_int;
+			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			painter.drawLine( nText_x, height() - 13, nText_x, height() - 1 );
+			painter.drawText( nText_x + 3, 0, 60, m_nRulerHeight,
+							Qt::AlignVCenter | Qt::AlignLeft,
+							QString("%1").arg(ii + 1) );
+		}
+	}
+
+	// Draw remaining ticks
+	float fStep;
+	if ( m_pPatternEditorPanel->isUsingTriplets() ) {
+		fStep = 4 * 4 * H2Core::nTicksPerQuarter / ( 3 * nResolution ) * m_fGridWidth;
+	} else {
+		fStep = 4 * 4 * H2Core::nTicksPerQuarter / ( 4 * nResolution ) * m_fGridWidth;
+	}
+	for ( float xx = PatternEditor::nMargin; xx < m_nWidthActive; xx += fStep ) {
+		painter.drawLine( xx, height() - 6, xx, height() - 1 );
+	}
+
+	painter.setPen( QPen( lineColor, 2, Qt::SolidLine ) );
+	painter.drawLine( 0, m_nRulerHeight, m_nRulerWidth, m_nRulerHeight);
+	painter.drawLine( m_nRulerWidth, 0, m_nRulerWidth, m_nRulerHeight );
+
+	m_bBackgroundInvalid = false;
+}
+
+
+bool PatternEditorRuler::getRulerResized()
+{
+	return rulerResized;
+}
+
+
+void PatternEditorRuler::setRulerResized(bool newValue)
+{
+	rulerResized = newValue;
 }
