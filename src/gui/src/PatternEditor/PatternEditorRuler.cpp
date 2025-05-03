@@ -292,7 +292,7 @@ void PatternEditorRuler::createBackground()
 	double valueDenominator = m_pPatternEditorPanel->getSelectedDenominatorCount();
 
 	int newLength = m_pPatternEditorPanel->getSelectedPatternLength();
-	m_nRulerWidth = PatternEditor::nMargin + newLength;
+	m_nRulerWidth = PatternEditor::nMargin + newLength * m_fGridWidth;
 	m_nWidthActive = m_nRulerWidth;
 
 	const auto pPref = H2Core::Preferences::get_instance();
@@ -347,7 +347,7 @@ void PatternEditorRuler::createBackground()
 	{
 		for ( int ii = 0; ii < range_end_int ; ii++ ) {			
 			//const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * H2Core::nTicksPerQuarter * range_end_int;
-			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii * m_fGridWidth + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
 			painter.drawLine( nText_x, height() - 13, nText_x, height() - 1 );
 			painter.drawText( nText_x + 3, 0, 60, m_nRulerHeight,
 							Qt::AlignVCenter | Qt::AlignLeft,
@@ -544,7 +544,7 @@ void PatternEditorRuler::resizeRuler(int newLength, double valueNumerator, doubl
 	rulerResized = true;
 
 	m_nRulerHeight = 25;
-	m_nRulerWidth = PatternEditor::nMargin + newLength;
+	m_nRulerWidth = PatternEditor::nMargin + newLength * m_fGridWidth;
 
 	resize( m_nRulerWidth, m_nRulerHeight );
 
@@ -602,7 +602,7 @@ void PatternEditorRuler::createResizedBackground(double valueNumerator, double v
 	{
 		for ( int ii = 0; ii < range_end_int ; ii++ ) {			
 			//const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * H2Core::nTicksPerQuarter * range_end_int;
-			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii * m_fGridWidth + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
 			painter.drawLine( nText_x, height() - 13, nText_x, height() - 1 );
 			painter.drawText( nText_x + 3, 0, 60, m_nRulerHeight,
 							Qt::AlignVCenter | Qt::AlignLeft,
