@@ -336,7 +336,7 @@ void PatternEditorRuler::createBackground()
 
 	
 	double fraction = static_cast<double>(valueNumerator) / valueDenominator;
-	int range_end_int = static_cast<int>(std::ceil(4 * fraction));
+	int range_end_int = static_cast<int>(std::ceil(m_fGridWidth * 4 * 4 * H2Core::nTicksPerQuarter));
 	int added_count = m_pPatternEditorPanel->getSelectedAddedCount();
 	if(added_count == -1)
 	{
@@ -347,7 +347,8 @@ void PatternEditorRuler::createBackground()
 	{
 		for ( int ii = 0; ii < range_end_int ; ii++ ) {			
 			//const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * H2Core::nTicksPerQuarter * range_end_int;
-			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			nText_x *= m_fGridWidth;
 			painter.drawLine( nText_x, height() - 13, nText_x, height() - 1 );
 			painter.drawText( nText_x + 3, 0, 60, m_nRulerHeight,
 							Qt::AlignVCenter | Qt::AlignLeft,
@@ -543,6 +544,8 @@ void PatternEditorRuler::resizeRuler(int newLength, double valueNumerator, doubl
 {
 	rulerResized = true;
 
+	//newLength *=  m_fGridWidth;
+
 	m_nRulerHeight = 25;
 	m_nRulerWidth = PatternEditor::nMargin + newLength;
 
@@ -597,12 +600,13 @@ void PatternEditorRuler::createResizedBackground(double valueNumerator, double v
 	painter.setPen( textColor );
 
 	double fraction = static_cast<double>(valueNumerator) / valueDenominator;
-	int range_end_int = static_cast<int>(std::ceil(4 * fraction));
+	int range_end_int = static_cast<int>(std::ceil(m_fGridWidth * 4 * fraction * H2Core::nTicksPerQuarter));
 	for( int cnt = 0; cnt < added_count; cnt++)
 	{
 		for ( int ii = 0; ii < range_end_int ; ii++ ) {			
 			//const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * H2Core::nTicksPerQuarter * range_end_int;
-			const int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			int nText_x = PatternEditor::nMargin + H2Core::nTicksPerQuarter * ii + cnt * (m_nRulerWidth - PatternEditor::nMargin) / added_count;
+			nText_x *= m_fGridWidth;
 			painter.drawLine( nText_x, height() - 13, nText_x, height() - 1 );
 			painter.drawText( nText_x + 3, 0, 60, m_nRulerHeight,
 							Qt::AlignVCenter | Qt::AlignLeft,
