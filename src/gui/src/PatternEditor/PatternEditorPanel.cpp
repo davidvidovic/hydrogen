@@ -1254,8 +1254,11 @@ void PatternEditorPanel::updatePatternInfo() {
 		return;
 	}
 	else {
-		m_pLCDSpinBoxDenominator->setIsActive( true );
-		m_pLCDSpinBoxNumerator->setIsActive( true );
+		if(added_count[m_nPatternNumber] == 1)
+		{
+			m_pLCDSpinBoxDenominator->setIsActive( true );
+			m_pLCDSpinBoxNumerator->setIsActive( true );
+		}
 	}
 
 	if ( ! m_bPatternSelectedViaTab ) {
@@ -2956,6 +2959,17 @@ void PatternEditorPanel::addNewMeasureBtnClick()
 
 	++added_count[m_nPatternNumber];
 
+	if(added_count[m_nPatternNumber] > 1)
+	{
+		m_pLCDSpinBoxDenominator->setIsActive( false );
+		m_pLCDSpinBoxNumerator->setIsActive( false );
+	}
+	else if(added_count[m_nPatternNumber] == 1)
+	{
+		m_pLCDSpinBoxDenominator->setIsActive( true );
+		m_pLCDSpinBoxNumerator->setIsActive( true );
+	}
+
 	/* Change dispaleyd Pattern length */
 
 	double fvalueNumerator = m_pLCDSpinBoxNumerator->value();
@@ -3009,10 +3023,23 @@ void PatternEditorPanel::removeNewMeasureBtnClick()
 	}
 	else
 	{
+		m_pLCDSpinBoxDenominator->setIsActive( false );
+		m_pLCDSpinBoxNumerator->setIsActive( false );
 		return;
 	}
 
 	removeMeasureClicked = true;
+	if(added_count[m_nPatternNumber] == 1)
+	{
+		m_pLCDSpinBoxDenominator->setIsActive( true );
+		m_pLCDSpinBoxNumerator->setIsActive( true );
+	}
+	else
+	{
+		m_pLCDSpinBoxDenominator->setIsActive( false );
+		m_pLCDSpinBoxNumerator->setIsActive( false );
+	}
+
 
 	/* Change dispaleyd Pattern length */
 
@@ -3163,4 +3190,16 @@ double PatternEditorPanel::getSelectedDenominatorCount()
 	}
 
 	return -1;	
+}
+
+void PatternEditorPanel::enableSizeLCD()
+{
+	m_pLCDSpinBoxDenominator->setIsActive( true );
+	m_pLCDSpinBoxNumerator->setIsActive( true );
+}
+
+void PatternEditorPanel::disableSizeLCD()
+{
+	m_pLCDSpinBoxDenominator->setIsActive( false );
+	m_pLCDSpinBoxNumerator->setIsActive( false );
 }

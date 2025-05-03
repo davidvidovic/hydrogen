@@ -345,6 +345,8 @@ class PatternEditorPanel :  public QWidget, protected WidgetWithScalableFont<8, 
 		int getSelectedPatternLength();
 		double getSelectedNumeratorCount();
 		double getSelectedDenominatorCount();
+		void enableSizeLCD();
+		void disableSizeLCD();
 
 	public slots:
 		void showDrumEditor();

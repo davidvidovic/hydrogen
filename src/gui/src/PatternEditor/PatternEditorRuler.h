@@ -82,8 +82,8 @@ class PatternEditorRuler :  public QWidget, protected WidgetWithScalableFont<8, 
 		void invalidateBackground();
 		bool m_bBackgroundInvalid;
 
-		void resizeRuler(int, int, int, int);
-		void createResizedBackground(int, int, int);
+		void resizeRuler(int, double, double, int);
+		void createResizedBackground(double, double, int);
 
 		bool getRulerResized();
 		void setRulerResized(bool);

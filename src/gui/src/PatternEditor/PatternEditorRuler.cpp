@@ -478,8 +478,25 @@ bool PatternEditorRuler::updateActiveRange() {
 	}
 
 	int nWidthActive = PatternEditor::nMargin + nTicksInPattern * m_fGridWidth;
+	
+	resizeRuler(
+		m_pPatternEditorPanel->getSelectedPatternLength(),
+		m_pPatternEditorPanel->getSelectedNumeratorCount(), 
+		m_pPatternEditorPanel->getSelectedDenominatorCount(),
+		m_pPatternEditorPanel->getSelectedAddedCount()
+		);
+
+	if(m_pPatternEditorPanel->getSelectedAddedCount() == 1)
+	{
+		m_pPatternEditorPanel->enableSizeLCD();
+	}
+	else
+	{
+		m_pPatternEditorPanel->disableSizeLCD();
+	}
+
 	if ( m_nWidthActive != nWidthActive ) {
-		m_nWidthActive = nWidthActive;
+		//m_nWidthActive = nWidthActive;
 		return true;
 	}
 
@@ -522,7 +539,7 @@ void PatternEditorRuler::stateChangedEvent( const H2Core::AudioEngine::State& )
 	updatePosition();
 }
 
-void PatternEditorRuler::resizeRuler(int newLength, int valueNumerator, int valueDenominator, int added_count)
+void PatternEditorRuler::resizeRuler(int newLength, double valueNumerator, double valueDenominator, int added_count)
 {
 	rulerResized = true;
 
@@ -532,12 +549,12 @@ void PatternEditorRuler::resizeRuler(int newLength, int valueNumerator, int valu
 	resize( m_nRulerWidth, m_nRulerHeight );
 
 	// Edit labels
-	updateActiveRange();
+	//updateActiveRange();
 	createResizedBackground(valueNumerator, valueDenominator, added_count);
 }
 
 
-void PatternEditorRuler::createResizedBackground(int valueNumerator, int valueDenominator, int added_count)
+void PatternEditorRuler::createResizedBackground(double valueNumerator, double valueDenominator, int added_count)
 {
 	const auto pPref = H2Core::Preferences::get_instance();
 	m_nWidthActive = m_nRulerWidth;
